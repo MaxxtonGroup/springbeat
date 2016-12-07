@@ -9,6 +9,24 @@ common:
     Contains common fields available in all event types.
   fields:
     - type: group
+      name: info
+      fields:
+        - type: group
+          name: app
+          fields:
+            - name: id
+              description: >
+              The unique id of the microservice instance.
+              Gets extracted from the /info endpoint.
+            - name: name
+              description: >
+              The name of the microservice instance.
+              Gets extracted from the /info endpoint.
+            - name: port
+              description: >
+              The port of the microservice instance.
+              Gets extracted from the /info endpoint.
+    - type: group
       name: beat
       fields:
       - name: name

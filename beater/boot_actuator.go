@@ -11,6 +11,7 @@ import (
 
 const METRICS_STATS = "/metrics"
 const HEALTH_STATS = "/health"
+const APP_INFO = "/info"
 
 type HealthStats struct {
     Status string `json:"status"`
@@ -161,6 +162,14 @@ type RawMetricsStats struct {
     CounterStatus200Trace uint64 `json:"counter.status.200.trace"`
 }
 
+type AppInfo struct {
+  App struct {
+    Id string `json:"id"`
+    Name string `json:"name"`
+    Port string `json:"port"`
+  } `json:"app"`
+}
+
 func (bt *Springbeat) GetHealthStats(u url.URL) (*HealthStats, error) {
     res, err := http.Get(strings.TrimSuffix(u.String(), "/") + HEALTH_STATS)
     if err != nil {
@@ -260,5 +269,29 @@ func (bt *Springbeat) GetMetricsStats(u url.URL) (*MetricsStats, error) {
     stats.Status.TWO00.Root = raw_stats.CounterStatus200Root
     stats.Status.TWO00.Trace = raw_stats.CounterStatus200Trace
 
+    return stats, nil
+}
+
+func (bt *Springbeat) GetAppInfo(u url.URL) (*AppInfo, error) {
+    res, err := http.Get(strings.TrimSuffix(u.String(), "/") + APP_INFO)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    if res.StatusCode != 200 {
+        return nil, fmt.Errorf("HTTP%s", res.Status)
+    }
+
+    body, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    stats := &AppInfo{}
+    err = json.Unmarshal([]byte(body), &stats)
+    if err != nil {
+        return nil, err
+    }
     return stats, nil
 }

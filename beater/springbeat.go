@@ -83,13 +83,20 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 func (bt *Springbeat) Run(b *beat.Beat) error {
     logp.Info("springbeat is running! Hit CTRL-C to stop it.")
 
-    bt.client = b.publisher.Connect()
-    
+    bt.client = b.Publisher.Connect()
+
     for _, u := range bt.urls {
         go func(u *url.URL) {
 
             ticker := time.NewTicker(bt.config.Period)
             counter := 1
+
+	    app_info, err := bt.GetAppInfo(*u)
+
+            if err != nil {
+                logp.Err("Error reading app info: %v", err)
+            }
+
             for {
                 select {
                 case <-bt.done:
@@ -113,6 +120,7 @@ func (bt *Springbeat) Run(b *beat.Beat) error {
                             "type":         "metrics",
                             "counter":      counter,
                             "metrics":      metrics_stats,
+			    "info":	    app_info,
                         }
 
                         bt.client.PublishEvent(event)
@@ -135,6 +143,7 @@ func (bt *Springbeat) Run(b *beat.Beat) error {
                             "type":         "health",
                             "counter":      counter,
                             "health":       health_stats,
+                            "info":          app_info,
                         }
 
                         bt.client.PublishEvent(event)
