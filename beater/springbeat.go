@@ -1,6 +1,7 @@
 package beater
 
 import (
+    "os"
     "errors"
     "fmt"
     "net/url"
@@ -95,6 +96,9 @@ func (bt *Springbeat) Run(b *beat.Beat) error {
 
             if err != nil {
                 logp.Err("Error reading app info: %v", err)
+                logp.Warn("Beater shutting down. Either the url:port combination was incorrect or the service's endpoints are blocked.")
+                logp.Warn("Make sure the service runs at least Spring Boot Util version 1.16.")
+                os.Exit(1)
             }
 
             for {
