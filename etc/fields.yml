@@ -26,6 +26,10 @@ common:
               description: >
               The port of the microservice instance.
               Gets extracted from the /info endpoint.
+            - name: environment
+              description: >
+              The environment of the microservice isntance.
+              Gets extracted from the /info endpoint.
     - type: group
       name: beat
       fields:

@@ -167,6 +167,7 @@ type AppInfo struct {
     Id string `json:"id"`
     Name string `json:"name"`
     Port string `json:"port"`
+    Environment string `json:"environment"`
   } `json:"app"`
 }
 
