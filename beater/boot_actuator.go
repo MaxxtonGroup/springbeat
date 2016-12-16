@@ -80,33 +80,8 @@ type MetricsStats struct {
         PrimaryActive uint64 `json:"primary_active"`
         PrimaryUsage float64 `json:"primary_usage"`
     } `json:"data_source"`
-    GaugeResponse struct {
-        Actuator float64 `json:"actuator,omitempty"`
-        Autoconfig float64 `json:"autoconfig,omitempty"`
-        Beans float64 `json:"beans,omitempty"`
-        Configprops float64 `json:"configprops,omitempty"`
-        Dump float64 `json:"dump,omitempty"`
-        Env float64 `json:"env,omitempty"`
-        Health float64 `json:"health,omitempty"`
-        Info float64 `json:"info,omitempty"`
-        Root float64 `json:"root,omitempty"`
-        Trace float64 `json:"trace,omitempty"`
-        Unmapped float64 `json:"unmapped,omitempty"`
-    } `json:"gauge_response"`
-    Status struct {
-        TWO00 struct {
-            Actuator uint64 `json:"actuator,omitempty"`
-            Autoconfig uint64 `json:"autoconfig,omitempty"`
-            Beans uint64 `json:"beans,omitempty"`
-            Configprops uint64 `json:"configprops,omitempty"`
-            Dump uint64 `json:"dump,omitempty"`
-            Env uint64 `json:"env,omitempty"`
-            Health uint64 `json:"health,omitempty"`
-            Info uint64 `json:"info,omitempty"`
-            Root uint64 `json:"root,omitempty"`
-            Trace uint64 `json:"trace,omitempty"`
-        } `json:"200"`
-    } `json:"status"`
+    ResponseTime map[string]float64 `json:"response_time"`
+    StatusCount map[string]map[string]float64 `json:"status_count"`
 }
 
 type RawMetricsStats struct {
@@ -139,27 +114,6 @@ type RawMetricsStats struct {
     HttpSessionsActive uint64 `json:"httpsessions.active"`
     DateSourcePrimaryActive uint64 `json:"datasource.primary.active"`
     DateSourcePrimaryUsage float64 `json:"datasource.primary.usage"`
-    GaugeResponseActuator float64 `json:"gauge.response.actuator"`
-    GaugeResponseBeans float64 `json:"gauge.response.beans"`
-    GaugeResponseTrace float64 `json:"gauge.response.trace"`
-    GaugeResponseAutoconfig float64 `json:"gauge.response.autoconfig"`
-    GaugeResponseDump float64 `json:"gauge.response.dump"`
-    GaugeResponseHealth float64 `json:"gauge.response.health"`
-    GaugeResponseRoot float64 `json:"gauge.response.root"`
-    GaugeResponseUnmapped float64 `json:"gauge.response.unmapped"`
-    GaugeResponseInfo float64 `json:"gauge.response.info"`
-    GaugeResponseEnv float64 `json:"gauge.response.env"`
-    GaugeResponseConfigprops float64 `json:"gauge.response.configprops"`
-    CounterStatus200Actuator uint64 `json:"counter.status.200.actuator"`
-    CounterStatus200Autoconfig uint64 `json:"counter.status.200.autoconfig"`
-    CounterStatus200Beans uint64 `json:"counter.status.200.beans"`
-    CounterStatus200Configprops uint64 `json:"counter.status.200.configprops"`
-    CounterStatus200Dump uint64 `json:"counter.status.200.dump"`
-    CounterStatus200Env uint64 `json:"counter.status.200.env"`
-    CounterStatus200Health uint64 `json:"counter.status.200.health"`
-    CounterStatus200Info uint64 `json:"counter.status.200.info"`
-    CounterStatus200Root uint64 `json:"counter.status.200.root"`
-    CounterStatus200Trace uint64 `json:"counter.status.200.trace"`
 }
 
 type AppInfo struct {
@@ -192,6 +146,7 @@ func (bt *Springbeat) GetHealthStats(u url.URL) (*HealthStats, error) {
     if err != nil {
         return nil, err
     }
+
     return stats, nil
 }
 
@@ -217,7 +172,19 @@ func (bt *Springbeat) GetMetricsStats(u url.URL) (*MetricsStats, error) {
         return nil, err
     }
 
-    // Transform into usable JSON format
+    raw_json := make(map[string]interface{})
+    err = json.Unmarshal([]byte(body), &raw_json)
+    if err != nil {
+        return nil, err
+    }
+
+    keys := make([]string, len(raw_json))
+    i := 0
+    for k := range raw_json {
+        keys[i] = k
+        i++
+    }
+
     stats := &MetricsStats{}
     stats.Mem.Free = raw_stats.MemFree
     stats.Mem.Total = raw_stats.Mem
@@ -248,27 +215,27 @@ func (bt *Springbeat) GetMetricsStats(u url.URL) (*MetricsStats, error) {
     stats.Http.SessionsMax = raw_stats.HttpSessionsMax
     stats.DataSource.PrimaryActive = raw_stats.DateSourcePrimaryActive
     stats.DataSource.PrimaryUsage = raw_stats.DateSourcePrimaryUsage
-    stats.GaugeResponse.Actuator = raw_stats.GaugeResponseActuator
-    stats.GaugeResponse.Autoconfig = raw_stats.GaugeResponseAutoconfig
-    stats.GaugeResponse.Beans = raw_stats.GaugeResponseBeans
-    stats.GaugeResponse.Configprops = raw_stats.GaugeResponseConfigprops
-    stats.GaugeResponse.Dump = raw_stats.GaugeResponseDump
-    stats.GaugeResponse.Env = raw_stats.GaugeResponseEnv
-    stats.GaugeResponse.Health = raw_stats.GaugeResponseHealth
-    stats.GaugeResponse.Info = raw_stats.GaugeResponseInfo
-    stats.GaugeResponse.Root = raw_stats.GaugeResponseRoot
-    stats.GaugeResponse.Trace = raw_stats.GaugeResponseTrace
-    stats.GaugeResponse.Unmapped = raw_stats.GaugeResponseUnmapped
-    stats.Status.TWO00.Actuator = raw_stats.CounterStatus200Actuator
-    stats.Status.TWO00.Autoconfig = raw_stats.CounterStatus200Autoconfig
-    stats.Status.TWO00.Beans = raw_stats.CounterStatus200Beans
-    stats.Status.TWO00.Configprops = raw_stats.CounterStatus200Configprops
-    stats.Status.TWO00.Dump = raw_stats.CounterStatus200Dump
-    stats.Status.TWO00.Env = raw_stats.CounterStatus200Env
-    stats.Status.TWO00.Health = raw_stats.CounterStatus200Health
-    stats.Status.TWO00.Info = raw_stats.CounterStatus200Info
-    stats.Status.TWO00.Root = raw_stats.CounterStatus200Root
-    stats.Status.TWO00.Trace = raw_stats.CounterStatus200Trace
+    stats.ResponseTime = make(map[string]float64)
+    stats.StatusCount = make(map[string]map[string]float64)
+
+    // Dynamicly add counters and response times
+    for _, k := range keys {
+        if strings.HasPrefix(k, "counter.status.") {
+            suffix := strings.TrimPrefix(k, "counter.status.");
+            items := strings.SplitN(suffix, ".", 2);
+            statusMap := stats.StatusCount[items[0]];
+            if statusMap == nil {
+                statusMap = make(map[string]float64);
+            }
+            statusMap[strings.Replace(items[1], ".", "_", -1)] = raw_json[k].(float64);
+            stats.StatusCount[items[0]] = statusMap;
+        }
+        if strings.HasPrefix(k, "gauge.response.") {
+            suffix := strings.TrimPrefix(k, "gauge.response.");
+            suffix = strings.Replace(suffix, ".", "_", -1);
+            stats.ResponseTime[suffix] = raw_json[k].(float64);
+        }
+    }
 
     return stats, nil
 }
