@@ -121,7 +121,7 @@ func (bt *Springbeat) Run(b *beat.Beat) error {
 
                         event := common.MapStr{
                             "@timestamp":   common.Time(time.Now()),
-                            "type":         "metrics",
+                            "type":         "metrics-" + bt.config.ServiceName,
                             "counter":      counter,
                             "metrics":      metrics_stats,
 			    "info":	    app_info,
@@ -144,7 +144,7 @@ func (bt *Springbeat) Run(b *beat.Beat) error {
 
                         event := common.MapStr{
                             "@timestamp":   common.Time(time.Now()),
-                            "type":         "health",
+                            "type":         "health-" + bt.config.ServiceName,
                             "counter":      counter,
                             "health":       health_stats,
                             "info":          app_info,

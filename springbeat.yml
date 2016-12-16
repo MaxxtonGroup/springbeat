@@ -6,6 +6,8 @@ springbeat:
   # Defines how often an event is sent to the output
   period: "10s"
 
+  servicename: service-name
+
   # List of URLs to the Spring Boot app.
   # Defaults to ["http://127.0.0.1"].
   # Note: Do not use trailing slash

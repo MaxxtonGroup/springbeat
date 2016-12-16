@@ -7,7 +7,8 @@ import "time"
 
 type Config struct {
 	Period time.Duration `config:"period"`
-	URLs []string
+	ServiceName string
+        URLs []string
 
 	Stats struct {
 	     Metrics  	*bool
